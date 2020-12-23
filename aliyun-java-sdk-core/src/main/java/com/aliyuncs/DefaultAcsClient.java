@@ -1,6 +1,7 @@
 package com.aliyuncs;
 
 import com.aliyuncs.auth.*;
+import com.aliyuncs.auth.Signer;
 import com.aliyuncs.endpoint.DefaultEndpointResolver;
 import com.aliyuncs.endpoint.EndpointResolver;
 import com.aliyuncs.endpoint.ResolveEndpointRequest;
@@ -106,7 +107,7 @@ public class DefaultAcsClient implements IAcsClient {
     @Override
     public <T extends AcsResponse> HttpResponse doAction(AcsRequest<T> request, String regionId, Credential credential)
             throws ClientException, ServerException {
-        Signer signer = Signer.getSigner(new LegacyCredentials(credential), request);
+        Signer signer = Signer.getSigner(new LegacyCredentials(credential), this.getProfile().getSignatureMethod());
         FormatType format = null;
         if (null == request.getSysRegionId()) {
             request.setSysRegionId(regionId);
@@ -192,8 +193,12 @@ public class DefaultAcsClient implements IAcsClient {
         } else {
             credentials = this.credentialsProvider.getCredentials();
         }
-        Signer signer = Signer.getSigner(credentials, request);
+        Signer signer = Signer.getSigner(credentials, this.getProfile().getSignatureMethod());
         FormatType format = profile.getFormat();
+        if (!profile.getSignatureMethod().isEmpty()) {
+            request.putQueryParameter("SignatureMethod", profile.getSignatureMethod());
+            request.putHeaderParameter("x-acs-signature-method", profile.getSignatureMethod());
+        }
 
         return this.doAction(request, retry, retryNumber, request.getSysRegionId(), credentials, signer, format);
     }
